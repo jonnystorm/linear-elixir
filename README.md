@@ -1,5 +1,6 @@
 linear-elixir
 ========
+[![Build Status](https://travis-ci.org/jonnystorm/linear-elixir.svg?branch=master)](https://travis-ci.org/jonnystorm/linear-elixir)
 
 A *tiny* collection of vector/matrix operations for Elixir.
 
