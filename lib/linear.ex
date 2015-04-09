@@ -122,7 +122,6 @@ defimpl Vector, for: List do
   end
 end
 
-
 defmodule Matrix do
   def dimension(matrix) when is_list(matrix) do
     [row|_tail] = matrix
