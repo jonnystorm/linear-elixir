@@ -15,6 +15,8 @@ defmodule LinearEx.Mixfile do
   end
 
   defp deps do
-    []
+    [
+      {:jds_math_ex, git: "https://github.com/jonnystorm/jds-math-elixir"}
+    ]
   end
 end

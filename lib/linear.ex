@@ -5,73 +5,69 @@
 
 defprotocol Vector do
   def add(vector1, vector2)
-  def bit_and(vector1, vector2)
+  def subtract(vector1, vector2)
   def inner(vector1, vector2)
   def outer(vector1, vector2)
-  def subtract(vector1, vector2)
+  def bit_and(vector1, vector2)
   def bit_xor(vector1, vector2)
+  def mod(vector, modulus)
 end
 
 defimpl Vector, for: BitString do
   use Bitwise
 
   defp vector_op(list1, list2, fun) do
-    Enum.zip(list1, list2)
-      |> Enum.map(fun)
+    Enum.zip(list1, list2) |> Enum.map(fun)
   end
 
   defp bitstrings_to_lists(bitstrings) do
-    bitstrings
-      |> Enum.map(&(:binary.bin_to_list &1))
+    Enum.map(bitstrings, &(:binary.bin_to_list &1))
   end
 
   def add(bitstring1, bitstring2) do
-    [u, v] = [bitstring1, bitstring2]
-      |> bitstrings_to_lists
+    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
 
-    vector_op(u, v, fn {ui, vi} -> ui + vi end)
-      |> :binary.list_to_bin
-  end
-  
-  def bit_and(bitstring1, bitstring2) do
-    [u, v] = [bitstring1, bitstring2]
-      |> bitstrings_to_lists
-
-    vector_op(u, v, fn {ui, vi} -> band(ui, vi) end)
-      |> :binary.list_to_bin
-  end
-
-  def inner(bitstring1, bitstring2) do
-    [u, v] = [bitstring1, bitstring2]
-      |> bitstrings_to_lists
-
-    vector_op(u, v, fn {ui, vi} -> ui * vi end)
-      |> Enum.sum
-  end
-
-  def outer(bitstring1, bitstring2) do
-    [u, v] = [bitstring1, bitstring2]
-      |> bitstrings_to_lists
-
-    (for ui <- u do
-      for vj <- v, do: ui * vj
-    end) |> Enum.map(&(:binary.list_to_bin &1))
+    vector_op(u, v, fn {ui, vi} -> ui + vi end) |> :binary.list_to_bin
   end
 
   def subtract(bitstring1, bitstring2) do
-    [u, v] = [bitstring1, bitstring2]
-      |> bitstrings_to_lists
+    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
 
-    vector_op(u, v, fn {ui, vi} -> ui - vi end)
-      |> :binary.list_to_bin
+    vector_op(u, v, fn {ui, vi} -> Math.Binary.mod(ui - vi, 256) end) |> :binary.list_to_bin
+  end
+
+  def inner(bitstring1, bitstring2) do
+    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
+
+    vector_op(u, v, fn {ui, vi} -> ui * vi end) |> Enum.sum
+  end
+
+  def outer(bitstring1, bitstring2) do
+    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
+
+    for ui <- u do
+      for vj <- v, do: ui * vj
+    end
+    |> Enum.map(&(:binary.list_to_bin &1))
+  end
+  
+  def bit_and(bitstring1, bitstring2) do
+    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
+
+    vector_op(u, v, fn {ui, vi} -> band(ui, vi) end) |> :binary.list_to_bin
   end
 
   def bit_xor(bitstring1, bitstring2) do
-    [u, v] = [bitstring1, bitstring2]
-      |> bitstrings_to_lists
+    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
 
-    vector_op(u, v, fn {ui, vi} -> bxor(ui, vi) end)
-      |> :binary.list_to_bin
+    vector_op(u, v, fn {ui, vi} -> bxor(ui, vi) end) |> :binary.list_to_bin
+  end
+
+  def mod(bitstring, modulus) do
+    bitstring
+    |> :binary.bin_to_list
+    |> Enum.map(fn vi -> Math.Binary.mod(vi, modulus) end)
+    |> :binary.list_to_bin
   end
 end
 
@@ -79,37 +75,39 @@ defimpl Vector, for: List do
   use Bitwise
 
   defp vector_op(list1, list2, fun) do
-    Enum.zip(list1, list2)
-      |> Enum.map(fun)
+    Enum.zip(list1, list2) |> Enum.map(fun)
   end
 
   def add(list1, list2) do
     vector_op(list1, list2, fn {ui, vi} -> ui + vi end)
   end
 
-  def bit_and(list1, list2) do
-    vector_op(list1, list2, fn {ui, vi} -> band(ui, vi) end)
+  def subtract(list1, list2) do
+    vector_op(list1, list2, fn {ui, vi} -> ui - vi end)
   end
 
   def inner(list1, list2) do
-    vector_op(list1, list2, fn {ui, vi} -> ui * vi end)
-      |> Enum.sum
+    vector_op(list1, list2, fn {ui, vi} -> ui * vi end) |> Enum.sum
   end
 
-  def subtract(list1, list2) do
-    vector_op(list1, list2, fn {ui, vi} -> ui - vi end)
+  def outer(list1, list2) do
+    [u, v] = [list1, list2]
+
+    for ui <- u do
+      for vj <- v, do: ui * vj
+    end
+  end
+
+  def bit_and(list1, list2) do
+    vector_op(list1, list2, fn {ui, vi} -> band(ui, vi) end)
   end
 
   def bit_xor(list1, list2) do
     vector_op(list1, list2, fn {ui, vi} -> bxor(ui, vi) end)
   end
 
-  def outer(list1, list2) do
-    [u, v] = [list1, list2]
-
-    (for ui <- u do
-      for vj <- v, do: ui * vj
-    end)
+  def mod(list, modulus) do
+    Enum.map(list, fn vi -> Math.Binary.mod(vi, modulus) end)
   end
 end
 
@@ -137,8 +135,8 @@ defimpl Matrix, for: List do
 
   def transpose([row|tail]) when is_list(row) do
     [row|tail]
-      |> List.zip
-      |> Enum.map(&(Tuple.to_list &1))
+    |> List.zip
+    |> Enum.map(&(Tuple.to_list &1))
   end
   def transpose(vector) do
     transpose [vector]
