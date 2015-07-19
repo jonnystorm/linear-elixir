@@ -33,7 +33,7 @@ defimpl Vector, for: BitString do
   def subtract(bitstring1, bitstring2) do
     [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
 
-    vector_op(u, v, fn {ui, vi} -> Math.Binary.mod(ui - vi, 256) end) |> :binary.list_to_bin
+    vector_op(u, v, fn {ui, vi} -> Math.mod(ui - vi, 256) end) |> :binary.list_to_bin
   end
 
   def inner(bitstring1, bitstring2) do
@@ -66,7 +66,7 @@ defimpl Vector, for: BitString do
   def mod(bitstring, modulus) do
     bitstring
     |> :binary.bin_to_list
-    |> Enum.map(fn vi -> Math.Binary.mod(vi, modulus) end)
+    |> Enum.map(fn vi -> Math.mod(vi, modulus) end)
     |> :binary.list_to_bin
   end
 end
@@ -107,7 +107,7 @@ defimpl Vector, for: List do
   end
 
   def mod(list, modulus) do
-    Enum.map(list, fn vi -> Math.Binary.mod(vi, modulus) end)
+    Enum.map(list, fn vi -> Math.mod(vi, modulus) end)
   end
 end
 
