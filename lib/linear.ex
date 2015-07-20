@@ -11,35 +11,38 @@ defprotocol Vector do
   def bit_and(vector1, vector2)
   def bit_xor(vector1, vector2)
   def mod(vector, modulus)
+  def embed(vector, dimension)
 end
 
 defimpl Vector, for: BitString do
   use Bitwise
 
-  defp vector_op(list1, list2, fun) do
-    Enum.zip(list1, list2) |> Enum.map(fun)
-  end
-
   defp bitstrings_to_lists(bitstrings) do
     Enum.map(bitstrings, &(:binary.bin_to_list &1))
   end
 
-  def add(bitstring1, bitstring2) do
+  defp vector_op(bitstring1, bitstring2, fun)
+      when byte_size(bitstring1) == byte_size(bitstring2) do
     [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
 
-    vector_op(u, v, fn {ui, vi} -> ui + vi end) |> :binary.list_to_bin
+    Enum.zip(u, v) |> Enum.map(fun) |> :binary.list_to_bin
+  end
+  defp vector_op(_, _, _) do
+    raise ArgumentError, message: "Vectors must be of same dimension"
   end
 
-  def subtract(bitstring1, bitstring2) do
-    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
-
-    vector_op(u, v, fn {ui, vi} -> Math.mod(ui - vi, 256) end) |> :binary.list_to_bin
+  def add(u, v) do
+    vector_op(u, v, fn {ui, vi} -> ui + vi end)
   end
 
-  def inner(bitstring1, bitstring2) do
-    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
+  def subtract(u, v) do
+    vector_op(u, v, fn {ui, vi} -> Math.mod(ui - vi, 256) end)
+  end
 
-    vector_op(u, v, fn {ui, vi} -> ui * vi end) |> Enum.sum
+  def inner(u, v) do
+    vector_op(u, v, fn {ui, vi} -> ui * vi end)
+    |> :binary.bin_to_list
+    |> Enum.sum
   end
 
   def outer(bitstring1, bitstring2) do
@@ -51,16 +54,12 @@ defimpl Vector, for: BitString do
     |> Enum.map(&(:binary.list_to_bin &1))
   end
   
-  def bit_and(bitstring1, bitstring2) do
-    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
-
-    vector_op(u, v, fn {ui, vi} -> band(ui, vi) end) |> :binary.list_to_bin
+  def bit_and(u, v) do
+    vector_op(u, v, fn {ui, vi} -> band(ui, vi) end)
   end
 
-  def bit_xor(bitstring1, bitstring2) do
-    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
-
-    vector_op(u, v, fn {ui, vi} -> bxor(ui, vi) end) |> :binary.list_to_bin
+  def bit_xor(u, v) do
+    vector_op(u, v, fn {ui, vi} -> bxor(ui, vi) end)
   end
 
   def mod(bitstring, modulus) do
@@ -69,25 +68,38 @@ defimpl Vector, for: BitString do
     |> Enum.map(fn vi -> Math.mod(vi, modulus) end)
     |> :binary.list_to_bin
   end
+
+  def embed(bitstring, dimension) when byte_size(bitstring) == dimension do
+    bitstring
+  end
+  def embed(bitstring, dimension) when byte_size(bitstring) < dimension do
+    String.rjust(bitstring, dimension, 0)
+  end
+  def embed(bitstring, dimension) when byte_size(bitstring) > dimension do
+    raise ArgumentError, message: "Cannot vector embed in space of lower dimension"
+  end
 end
 
 defimpl Vector, for: List do
   use Bitwise
 
-  defp vector_op(list1, list2, fun) do
+  defp vector_op(list1, list2, fun) when length(list1) == length(list2) do
     Enum.zip(list1, list2) |> Enum.map(fun)
   end
-
-  def add(list1, list2) do
-    vector_op(list1, list2, fn {ui, vi} -> ui + vi end)
+  defp vector_op(_, _, _) do
+    raise ArgumentError, message: "Vectors must be of same dimension"
   end
 
-  def subtract(list1, list2) do
-    vector_op(list1, list2, fn {ui, vi} -> ui - vi end)
+  def add(u, v) do
+    vector_op(u, v, fn {ui, vi} -> ui + vi end)
   end
 
-  def inner(list1, list2) do
-    vector_op(list1, list2, fn {ui, vi} -> ui * vi end) |> Enum.sum
+  def subtract(u, v) do
+    vector_op(u, v, fn {ui, vi} -> ui - vi end)
+  end
+
+  def inner(u, v) do
+    vector_op(u, v, fn {ui, vi} -> ui * vi end) |> Enum.sum
   end
 
   def outer(list1, list2) do
@@ -98,16 +110,29 @@ defimpl Vector, for: List do
     end
   end
 
-  def bit_and(list1, list2) do
-    vector_op(list1, list2, fn {ui, vi} -> band(ui, vi) end)
+  def bit_and(u, v) do
+    vector_op(u, v, fn {ui, vi} -> band(ui, vi) end)
   end
 
-  def bit_xor(list1, list2) do
-    vector_op(list1, list2, fn {ui, vi} -> bxor(ui, vi) end)
+  def bit_xor(u, v) do
+    vector_op(u, v, fn {ui, vi} -> bxor(ui, vi) end)
   end
 
   def mod(list, modulus) do
     Enum.map(list, fn vi -> Math.mod(vi, modulus) end)
+  end
+
+  def embed(list, dimension) when length(list) == dimension do
+    list
+  end
+  def embed(list, dimension) when length(list) < dimension do
+    list
+    |> :binary.list_to_bin
+    |> String.rjust(dimension, 0)
+    |> :binary.bin_to_list
+  end
+  def embed(list, dimension) when length(list) > dimension do
+    raise ArgumentError, message: "Cannot vector embed in space of lower dimension"
   end
 end
 

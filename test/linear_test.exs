@@ -13,7 +13,6 @@ defmodule LinearTest do
   test "subtracts two binaries" do
     assert Vector.subtract(<<1, 2, 3>>, <<1, 2, 3>>) == <<0, 0, 0>>
   end
-
   test "subtracts two binaries resulting in negative components" do
     assert Vector.subtract(<<1, 2, 3>>, <<2, 2, 3>>) == <<255, 0, 0>>
   end
@@ -23,11 +22,11 @@ defmodule LinearTest do
   end
 
   test "takes the outer product of two binaries" do
-    assert Vector.outer(<<1, 2, 3>>, <<1, 2, 3>>) ==
+    assert Vector.outer(<<1, 2, 3>>, <<1, 2, 3, 4>>) ==
       [
-        <<1, 2, 3>>,
-        <<2, 4, 6>>,
-        <<3, 6, 9>>
+        <<1, 2, 3,  4>>,
+        <<2, 4, 6,  8>>,
+        <<3, 6, 9, 12>>
       ]
   end
 
@@ -43,6 +42,10 @@ defmodule LinearTest do
     assert Vector.mod(<<2, 3, 4>>, 2) == <<0, 1, 0>>
   end
 
+  test "embeds binary vector in space of greater dimension" do
+    assert Vector.embed(<<1, 2, 3>>, 5) == <<0, 0, 1, 2, 3>>
+  end
+
   test "adds two lists" do
     assert Vector.add([1, 1, 1], [2, 2, 2]) == [3, 3, 3]
   end
@@ -50,9 +53,11 @@ defmodule LinearTest do
   test "subtracts two lists" do
     assert Vector.subtract([1, 2, 3], [1, 2, 3]) == [0, 0, 0]
   end
-
   test "subtracts two lists resulting in negative components" do
     assert Vector.subtract([1, 2, 3], [2, 2, 3]) == [-1, 0, 0]
+  end
+  test "lists of different length raise an error" do
+    assert_raise ArgumentError, fn -> Vector.add([1, 2], [1, 2, 3]) end
   end
 
   test "dots two lists" do
@@ -60,11 +65,11 @@ defmodule LinearTest do
   end
 
   test "takes the outer product of two lists" do
-    assert Vector.outer([1, 2, 3], [1, 2, 3]) ==
+    assert Vector.outer([1, 2, 3], [1, 2, 3, 4]) ==
       [
-        [1, 2, 3],
-        [2, 4, 6],
-        [3, 6, 9]
+        [1, 2, 3,  4],
+        [2, 4, 6,  8],
+        [3, 6, 9, 12]
       ]
   end
 
@@ -78,5 +83,9 @@ defmodule LinearTest do
 
   test "takes the modulo of each component of a list" do
     assert Vector.mod([2, 3, 4], 2) == [0, 1, 0]
+  end
+
+  test "embeds list vector in space of greater dimension" do
+    assert Vector.embed([1, 2, 3], 5) == [0, 0, 1, 2, 3]
   end
 end
