@@ -11,6 +11,7 @@ defprotocol Vector do
   def bit_and(vector1, vector2)
   def bit_xor(vector1, vector2)
   def mod(vector, modulus)
+  def dimension(vector)
   def embed(vector, dimension)
 end
 
@@ -67,6 +68,10 @@ defimpl Vector, for: BitString do
     |> :binary.bin_to_list
     |> Enum.map(fn vi -> Math.mod(vi, modulus) end)
     |> :binary.list_to_bin
+  end
+
+  def dimension(bitstring) do
+    byte_size bitstring
   end
 
   def embed(bitstring, dimension) when byte_size(bitstring) == dimension do
@@ -133,6 +138,10 @@ defimpl Vector, for: List do
   end
   def embed(list, dimension) when length(list) > dimension do
     raise ArgumentError, message: "Cannot vector embed in space of lower dimension"
+  end
+
+  def dimension(list) do
+    length list
   end
 end
 
