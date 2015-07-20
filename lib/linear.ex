@@ -81,7 +81,7 @@ defimpl Vector, for: BitString do
     String.rjust(bitstring, dimension, 0)
   end
   def embed(bitstring, dimension) when byte_size(bitstring) > dimension do
-    raise ArgumentError, message: "Cannot vector embed in space of lower dimension"
+    raise ArgumentError, message: "Cannot embed vector in space of lower dimension"
   end
 end
 
@@ -137,7 +137,7 @@ defimpl Vector, for: List do
     |> :binary.bin_to_list
   end
   def embed(list, dimension) when length(list) > dimension do
-    raise ArgumentError, message: "Cannot vector embed in space of lower dimension"
+    raise ArgumentError, message: "Cannot embed vector in space of lower dimension"
   end
 
   def dimension(list) do
