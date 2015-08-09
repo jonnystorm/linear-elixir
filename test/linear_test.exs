@@ -103,6 +103,26 @@ defmodule LinearTest do
     assert Vector.embed([1, 2, 3], 5) == [0, 0, 1, 2, 3]
   end
 
+  test "applies the Minkowski norm for p = 1 to list" do
+    vector = [1, 2, 3]
+
+    assert Vector.p_norm(vector, 1) == 6
+  end
+  test "applies the Minkowski norm for p = infinity to list" do
+    vector = [1, 2, 3]
+
+    assert Vector.p_norm(vector, :inf) == 3
+  end
+  test "applies the Minkowski norm for p = 2 to list" do
+    vector = [1, 2, 3]
+
+    assert Vector.p_norm(vector, 2)
+    == vector
+      |> Enum.map(&:math.pow(&1, 2))
+      |> Enum.sum
+      |> :math.sqrt
+  end
+
 
   ## Bitstring ##
 
@@ -229,5 +249,26 @@ defmodule LinearTest do
 
   test "embeds bitstring vector in space of greater dimension" do
     assert Vector.embed(<<1, 2, 3>>, 5) == <<0, 0, 1, 2, 3>>
+  end
+
+  test "applies the Minkowski norm for p = 1 to bitstring" do
+    vector = <<1, 2, 3>>
+
+    assert Vector.p_norm(vector, 1) == 6
+  end
+  test "applies the Minkowski norm for p = infinity to bitstring" do
+    vector = <<1, 2, 3>>
+
+    assert Vector.p_norm(vector, :inf) == 3
+  end
+  test "applies the Minkowski norm for p = 2 to bitstring" do
+    vector = <<1, 2, 3>>
+
+    assert Vector.p_norm(vector, 2)
+    == vector
+      |> :binary.bin_to_list
+      |> Enum.map(&:math.pow(&1, 2))
+      |> Enum.sum
+      |> :math.sqrt
   end
 end

@@ -16,6 +16,7 @@ defprotocol Vector do
   def mod(vector, modulus)
   def dimension(vector)
   def embed(vector, dimension)
+  def p_norm(vector, p)
 end
 
 defimpl Vector, for: List do
@@ -88,6 +89,10 @@ defimpl Vector, for: List do
     Enum.map v, fn vi -> Math.mod(vi, modulus) end
   end
 
+  def dimension(v) do
+    length v
+  end
+
   def embed(v, dimension) when length(v) == dimension do
     v
   end
@@ -101,8 +106,17 @@ defimpl Vector, for: List do
     raise ArgumentError, message: "Cannot embed vector in space of lower dimension"
   end
 
-  def dimension(v) do
-    length v
+  def p_norm(v, 1) do
+    Enum.sum v
+  end
+  def p_norm(v, :inf) do
+    Enum.max v
+  end
+  def p_norm(v, p) do
+    v
+    |> Enum.map(&:math.pow(&1, p))
+    |> Enum.sum
+    |> :math.pow(1 / p)
   end
 end
 
@@ -225,6 +239,24 @@ defimpl Vector, for: BitString do
   end
   def embed(v, dimension) when byte_size(v) > dimension do
     raise ArgumentError, message: "Cannot embed vector in space of lower dimension"
+  end
+
+  def p_norm(v, 1) do
+    v
+    |> :binary.bin_to_list
+    |> Enum.sum
+  end
+  def p_norm(v, :inf) do
+    v
+    |> :binary.bin_to_list
+    |> Enum.max
+  end
+  def p_norm(v, p) do
+    v
+    |> :binary.bin_to_list
+    |> Enum.map(&:math.pow(&1, p))
+    |> Enum.sum
+    |> :math.pow(1 / p)
   end
 end
 
