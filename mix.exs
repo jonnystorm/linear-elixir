@@ -11,7 +11,7 @@ defmodule LinearEx.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :jds_math_ex]]
   end
 
   defp deps do
