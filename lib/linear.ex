@@ -3,293 +3,143 @@
 # terms of the Do What The Fuck You Want To Public License, Version 2,
 # as published by Sam Hocevar. See the COPYING.WTFPL file for more details.
 
-defprotocol Vector do
-  def add(vector1, vector2)
-  def subtract(vector1, vector2)
-  def multiply(vector1, vector2)
-  def divide(vector1, vector2)
-  def inner(vector1, vector2)
-  def outer(vector1, vector2)
-  def bit_and(vector1, vector2)
-  def bit_xor(vector1, vector2)
-  def absolute(vector)
-  def mod(vector, modulus)
-  def dimension(vector)
-  def embed(vector, dimension)
-  def p_norm(vector, p)
-end
+defmodule Linear do
+  ## Operations ##
 
-defimpl Vector, for: List do
-  use Bitwise
-
-  defp vector_op(list1, list2, fun) when length(list1) == length(list2) do
-    Enum.zip(list1, list2) |> Enum.map(fun)
-  end
-  defp vector_op(_, _, _) do
-    raise ArgumentError, message: "Vectors must be of same dimension"
+  @spec dimension([[number]]) :: {pos_integer, pos_integer}
+  def dimension(object = [[_|_] | _]) when is_list object do
+    {length(object), length(hd object)}
   end
 
-  def add(u, v) when is_list v do
-    vector_op u, v, fn {ui, vi} -> ui + vi end
-  end
-  def add(v, scalar) when is_number scalar do
-    Enum.map v, fn vi -> vi + scalar end
-  end
-
-  def multiply(u, v) when is_list v do
-    vector_op u, v, fn {ui, vi} -> ui * vi end
-  end
-  def multiply(v, scalar) when is_number scalar do
-    Enum.map v, fn vi -> vi * scalar end
+  defp combine_lists(list_a, list_b, fun) do
+    list_a
+      |> Enum.zip(list_b)
+      |> Enum.map(fn {a_i, b_i} -> fun.(a_i, b_i) end)
   end
 
-  def subtract(u, v) when is_list v do
-    add u, multiply(v, -1)
-  end
-  def subtract(v, scalar) when is_number scalar do
-    Enum.map v, fn vi -> vi - scalar end
-  end
+  @spec add([[number]], [[number]]) :: [[number]]
+  def add(u = [[_|_] | _], v = [[_|_] | _])
+      when length(u) == length(v)
+      and length(hd u) == length(hd v) do
 
-  def divide(u, v) when is_list v do
-    vector_op(u, v, fn {ui, vi} -> ui / vi end)
-  end
-  def divide(v, scalar) when is_number scalar do
-    Enum.map v, fn vi -> vi / scalar end
-  end
-
-  def inner(u, v) when is_list v do
-    multiply(u, v) |> Enum.sum
-  end
-
-  def outer(u, v) when is_list v do
-    for ui <- u do
-      multiply(v, ui)
+    combine_lists u, v, fn (u_i, v_i) ->
+      combine_lists u_i, v_i, &(&1 + &2)
     end
   end
 
-  def bit_and(u, v) when is_list v do
-    vector_op u, v, fn {ui, vi} -> band(ui, vi) end
-  end
-  def bit_and(v, scalar) when is_number scalar do
-    Enum.map v, fn vi -> band(vi, scalar) end
-  end
+  @spec subtract([[number]], [[number]]) :: [[number]]
+  def subtract(u = [[_|_] | _], v = [[_|_] | _])
+      when length(u) == length(v)
+      and length(hd u) == length(hd v) do
 
-  def bit_xor(u, v) when is_list v do
-    vector_op u, v, fn {ui, vi} -> bxor(ui, vi) end
-  end
-  def bit_xor(v, scalar) when is_number scalar do
-    Enum.map v, fn vi -> bxor(vi, scalar) end
-  end
-
-  def absolute(v) do
-    Enum.map v, fn vi -> abs vi end
-  end
-
-  def mod(v, modulus) do
-    Enum.map v, fn vi -> Math.mod(vi, modulus) end
-  end
-
-  def dimension(v) do
-    length v
-  end
-
-  def embed(v, dimension) when length(v) == dimension do
     v
-  end
-  def embed(v, dimension) when length(v) < dimension do
-    v
-    |> :binary.list_to_bin
-    |> String.rjust(dimension, 0)
-    |> :binary.bin_to_list
-  end
-  def embed(list, dimension) when length(list) > dimension do
-    raise ArgumentError, message: "Cannot embed vector in space of lower dimension"
+      |> multiply(-1)
+      |> add(u)
   end
 
-  def p_norm(v, 1) do
-    Enum.sum v
-  end
-  def p_norm(v, :inf) do
-    Enum.max v
-  end
-  def p_norm(v, p) do
-    v
-    |> Enum.map(&:math.pow(&1, p))
-    |> Enum.sum
-    |> :math.pow(1 / p)
-  end
-end
-
-defimpl Vector, for: BitString do
-  use Bitwise
-
-  defp bitstrings_to_lists(bitstrings) do
-    Enum.map(bitstrings, &(:binary.bin_to_list &1))
+  defp weighted_sum(list_a, list_b) do
+    Enum.sum combine_lists(list_a, list_b, &(&1 * &2))
   end
 
-  defp vector_op(bitstring1, bitstring2, fun)
-      when byte_size(bitstring1) == byte_size(bitstring2) do
-    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
+  @spec matrix_product([[number]], [[number]]) :: [[number]]
+  def matrix_product(matrix1, matrix2)
+      when length(hd matrix1) == length(matrix2) do
 
-    Enum.zip(u, v) |> Enum.map(fun) |> :binary.list_to_bin
-  end
-  defp vector_op(_, _, _) do
-    raise ArgumentError, message: "Vectors must be of same dimension"
-  end
-
-  def add(u, v) when is_binary v do
-    vector_op(u, v, fn {ui, vi} -> Math.mod(ui + vi, 256) end)
-  end
-  def add(v, scalar) when is_integer scalar do
-    v
-    |> :binary.bin_to_list
-    |> Enum.map(fn vi -> Math.mod(vi + scalar, 256) end)
-    |> :binary.list_to_bin
-  end
-
-  def multiply(u, v) when is_binary v do
-    vector_op(u, v, fn {ui, vi} -> Math.mod(ui * vi, 256) end)
-  end
-  def multiply(v, scalar) when is_integer scalar do
-    v
-    |> :binary.bin_to_list
-    |> Enum.map(fn vi -> Math.mod(vi * scalar, 256) end)
-    |> :binary.list_to_bin
-  end
-
-  def subtract(u, v) when is_binary v do
-    add u, multiply(v, -1)
-  end
-  def subtract(v, scalar) when is_integer scalar do
-    v
-    |> :binary.bin_to_list
-    |> Enum.map(fn vi -> Math.mod(vi - scalar, 256) end)
-    |> :binary.list_to_bin
-  end
-
-  def divide(u, v) when is_binary v do
-    vector_op(u, v, fn {ui, vi} -> div(ui, vi) |> Math.mod(256) end)
-  end
-  def divide(v, scalar) when is_integer scalar do
-    v
-    |> :binary.bin_to_list
-    |> Enum.map(fn vi -> div(vi, scalar) |> Math.mod(256) end)
-    |> :binary.list_to_bin
-  end
-
-  def inner(u, v) when is_binary v do
-    u
-    |> multiply(v)
-    |> :binary.bin_to_list
-    |> Enum.sum
-  end
-
-  def outer(bitstring1, bitstring2) when is_binary bitstring2 do
-    [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
-
-    for ui <- u do
-      for vj <- v, do: Math.mod(ui * vj, 256)
-    end
-    |> Enum.map(&:binary.list_to_bin(&1))
-  end
-
-  def bit_and(u, v) when is_binary v do
-    vector_op(u, v, fn {ui, vi} -> band(ui, vi) end)
-  end
-  def bit_and(v, scalar) when is_integer scalar do
-    v
-    |> :binary.bin_to_list
-    |> Enum.map(fn vi -> scalar |> Math.mod(256) |> band(vi) end)
-    |> :binary.list_to_bin
-  end
-
-  def bit_xor(u, v) when is_binary v do
-    vector_op(u, v, fn {ui, vi} -> bxor(ui, vi) end)
-  end
-  def bit_xor(u, v) when is_binary v do
-    vector_op(u, v, fn {ui, vi} -> band(ui, vi) end)
-  end
-  def bit_xor(v, scalar) when is_integer scalar do
-    v
-    |> :binary.bin_to_list
-    |> Enum.map(fn vi -> scalar |> Math.mod(256) |> bxor(vi) end)
-    |> :binary.list_to_bin
-  end
-
-  def absolute(v) do
-    v
-  end
-
-  def mod(v, modulus) do
-    v
-    |> :binary.bin_to_list
-    |> Enum.map(fn vi -> Math.mod(vi, modulus) end)
-    |> :binary.list_to_bin
-  end
-
-  def dimension(v) do
-    byte_size v
-  end
-
-  def embed(v, dimension) when byte_size(v) == dimension do
-    v
-  end
-  def embed(v, dimension) when byte_size(v) < dimension do
-    String.rjust(v, dimension, 0)
-  end
-  def embed(v, dimension) when byte_size(v) > dimension do
-    raise ArgumentError, message: "Cannot embed vector in space of lower dimension"
-  end
-
-  def p_norm(v, 1) do
-    v
-    |> :binary.bin_to_list
-    |> Enum.sum
-  end
-  def p_norm(v, :inf) do
-    v
-    |> :binary.bin_to_list
-    |> Enum.max
-  end
-  def p_norm(v, p) do
-    v
-    |> :binary.bin_to_list
-    |> Enum.map(&:math.pow(&1, p))
-    |> Enum.sum
-    |> :math.pow(1 / p)
-  end
-end
-
-
-defprotocol Matrix do
-  def dimension(matrix)
-  def multiply(matrix, matrix_or_vector)
-  def transpose(matrix_or_vector)
-end
-
-defimpl Matrix, for: List do
-  def dimension([row|tail]) when is_list row do
-    {length([row|tail]), length(row)}
-  end
-
-  def multiply([row|tail], [row2|tail2]) when is_list(row) and is_list(row2) do
-    for row <- [row|tail] do
-      for col <- transpose [row2|tail2] do
-        Vector.inner(row, col)
+    for row <- matrix1 do
+      for column <- transpose matrix2 do
+        weighted_sum row, column
       end
     end
   end
-  def multiply([row|tail], vector) when is_list(row) and is_list(vector) do
-    multiply([row|tail], transpose [vector])
+
+  @spec dot_product([[number]], [[number]]) :: number
+  def dot_product(row = [[_ | _]], column = [[_] | _]) do
+    matrix_product row, column
   end
 
-  def transpose([row|tail]) when is_list row do
-    [row|tail]
-    |> List.zip
-    |> Enum.map(&(Tuple.to_list &1))
+  @spec tensor_product([[number]], [[number]]) :: [[number]]
+  defp _tensor_product(u, v) when is_number(u) and is_number(v) do
+    u * v
   end
-  def transpose(vector) do
-    transpose [vector]
+  defp _tensor_product(u, v) do
+    for u_i <- u, v_j <- v do
+      _tensor_product u_i, v_j
+    end
+  end
+
+  @spec tensor_product([[number]], [[number]]) :: [[number]]
+  def tensor_product(tensor1 = [[_|_] | _], tensor2 = [[_|_] | _]) do
+    _tensor_product tensor1, tensor2
+  end
+
+  @spec multiply(number, number) :: number
+  @spec multiply(number, [[number]]) :: [[number]]
+  @spec multiply([[number]], number) :: [[number]]
+  @spec multiply([[number]], [[number]]) :: number | [[number]]
+  def multiply(scalar1, scalar2)
+      when is_number(scalar1) and is_number(scalar2) do
+
+    multiply [[scalar1]], [[scalar2]]
+  end
+  def multiply(scalar, rows = [[_|_] | _]) when is_number(scalar) do
+    multiply [[scalar]], rows
+  end
+  def multiply(rows = [[_|_] | _], scalar) when is_number(scalar) do
+    multiply rows, [[scalar]]
+  end
+  def multiply(row = [[_|_]], column = [[_] | _])
+      when length(hd row) == length(column) do
+
+    [[result]] = matrix_product row, column
+
+    result
+  end
+  def multiply(matrix1 = [[_|_] | _], matrix2 = [[_|_] | _])
+      when length(hd matrix1) == length(matrix2) do
+
+    matrix_product matrix1, matrix2
+  end
+  def multiply(tensor1 = [[_|_] | _], tensor2 = [[_|_] | _]) do
+    tensor_product tensor1, tensor2
+  end
+
+  @spec transpose([[number]]) :: [[number]]
+  def transpose(object = [[_|_] | _]) do
+    object
+      |> List.zip
+      |> Enum.map(&Tuple.to_list(&1))
+  end
+
+
+  ## Common structures ##
+
+  defp make_matrix_of(x, n, m) do
+    x
+      |> List.duplicate(m)
+      |> List.duplicate(n)
+  end
+
+  @spec ones(pos_integer, pos_integer) :: [[1]]
+  def ones(n, m) when is_integer(n) and is_integer(m) and n >= 1 and m >= 1 do
+    make_matrix_of 1, n, m
+  end
+
+  @spec identity_matrix(pos_integer) :: [[0 | 1]]
+  def identity_matrix(n) when is_integer(n) and n >= 1 do
+    zeros = List.duplicate 0, n
+
+    for i <- 1..n do
+      List.update_at zeros, i - 1, fn 0 -> 1 end
+    end
+  end
+
+  @spec complete_graph_adjacency_matrix(pos_integer) :: [[0 | 1]]
+  def complete_graph_adjacency_matrix(n) when is_integer(n) and n >= 1 do
+    one = ones 1, n
+
+    one
+      |> transpose
+      |> multiply(one)
+      |> subtract(identity_matrix n)
   end
 end
-
