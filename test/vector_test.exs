@@ -81,6 +81,16 @@ defmodule VectorTest do
     assert Vector.bit_and([3, 3, 3], 1) == [1, 1, 1]
   end
 
+  test "ORs two lists" do
+    assert Vector.bit_or([1, 1, 1], [3, 3, 3]) == [3, 3, 3]
+  end
+  test "ORing lists of unequal length raises an error" do
+    assert_raise ArgumentError, fn -> Vector.bit_or([1, 2], [1, 2, 3]) end
+  end
+  test "ORs a scalar with a list" do
+    assert Vector.bit_or([3, 3, 3], 1) == [3, 3, 3]
+  end
+
   test "XORs two lists" do
     assert Vector.bit_xor([1, 1, 1], [3, 3, 3]) == [2, 2, 2]
   end
@@ -228,6 +238,19 @@ defmodule VectorTest do
   end
   test "ANDs a negative scalar with a bitstring" do
     assert Vector.bit_and(<<255, 255, 255>>, -255) == <<1, 1, 1>>
+  end
+
+  test "ORs two bitstrings" do
+    assert Vector.bit_or(<<1, 1, 1>>, <<3, 3, 3>>) == <<3, 3, 3>>
+  end
+  test "ORing bitstrings of unequal length raises an error" do
+    assert_raise ArgumentError, fn -> Vector.bit_or(<<1, 2>>, <<1, 2, 3>>) end
+  end
+  test "ORs a scalar with a bitstring" do
+    assert Vector.bit_or(<<1, 1, 1>>, 3) == <<3, 3, 3>>
+  end
+  test "ORs a negative scalar with a bitstring" do
+    assert Vector.bit_or(<<3, 3, 3>>, -255) == <<-253, -253, -253>>
   end
 
   test "XORs two bitstrings" do

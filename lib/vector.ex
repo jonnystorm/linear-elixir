@@ -11,6 +11,7 @@ defprotocol Vector do
   def inner(vector1, vector2)
   def outer(vector1, vector2)
   def bit_and(vector1, vector2)
+  def bit_or(vector1, vector2)
   def bit_xor(vector1, vector2)
   def absolute(vector)
   def mod(vector, modulus)
@@ -74,6 +75,13 @@ defimpl Vector, for: List do
   end
   def bit_and(v, scalar) when is_number scalar do
     Enum.map v, fn vi -> band(vi, scalar) end
+  end
+
+  def bit_or(u, v) when is_list v do
+    vector_op u, v, fn {ui, vi} -> bor(ui, vi) end
+  end
+  def bit_or(v, scalar) when is_number scalar do
+    Enum.map v, fn vi -> bor(vi, scalar) end
   end
 
   def bit_xor(u, v) when is_list v do
@@ -209,11 +217,18 @@ defimpl Vector, for: BitString do
       |> :binary.list_to_bin
   end
 
+  def bit_or(u, v) when is_binary v do
+    vector_op(u, v, fn {ui, vi} -> bor(ui, vi) end)
+  end
+  def bit_or(v, scalar) when is_integer scalar do
+    v
+      |> :binary.bin_to_list
+      |> Enum.map(fn vi -> scalar |> Math.mod(256) |> bor(vi) end)
+      |> :binary.list_to_bin
+  end
+
   def bit_xor(u, v) when is_binary v do
     vector_op(u, v, fn {ui, vi} -> bxor(ui, vi) end)
-  end
-  def bit_xor(u, v) when is_binary v do
-    vector_op(u, v, fn {ui, vi} -> band(ui, vi) end)
   end
   def bit_xor(v, scalar) when is_integer scalar do
     v
