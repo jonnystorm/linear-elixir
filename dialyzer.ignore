@@ -1,0 +1,5 @@
+The specification for 'Elixir.Matrix':'__protocol__'/1 states that the function might also return 'true'
+The specification for 'Elixir.Vector':'__protocol__'/1 states that the function might also return 'true'
+# Unneeded protocol implementations
+Unknown function 'Elixir.Matrix
+Unknown function 'Elixir.Vector
