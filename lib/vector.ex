@@ -99,7 +99,7 @@ defimpl Vector, for: List do
   def embed(v, dimension) when length(v) < dimension do
     v
     |> :binary.list_to_bin
-    |> String.rjust(dimension, 0)
+    |> String.pad_leading(dimension, <<0>>)
     |> :binary.bin_to_list
   end
 
@@ -143,43 +143,66 @@ defimpl Vector, for: BitString do
     raise ArgumentError, message: "Vectors must be of same dimension"
   end
 
-  def add(u, v) when is_binary(v),
-    do: vector_op(u, v, fn {ui, vi} -> Math.mod(ui + vi, 256) end)
+  def add(u, v) when is_binary v do
+    vector_op u, v, fn {ui, vi} ->
+      Math.positive_mod(ui + vi, 256)
+    end
+  end
 
   def add(v, scalar) when is_integer scalar do
     v
     |> :binary.bin_to_list
-    |> Enum.map(fn vi -> Math.mod(vi + scalar, 256) end)
+    |> Enum.map(fn vi ->
+      Math.positive_mod(vi + scalar, 256)
+    end)
     |> :binary.list_to_bin
   end
 
-  def multiply(u, v) when is_binary(v),
-    do: vector_op(u, v, fn {ui, vi} -> Math.mod(ui * vi, 256) end)
+  def multiply(u, v) when is_binary v do
+    vector_op u, v, fn {ui, vi} ->
+      Math.positive_mod(ui * vi, 256)
+    end
+  end
 
-  def multiply(v, scalar) when is_integer(scalar) do
+  def multiply(v, scalar) when is_integer scalar do
     v
     |> :binary.bin_to_list
-    |> Enum.map(fn vi -> Math.mod(vi * scalar, 256) end)
+    |> Enum.map(fn vi ->
+      Math.positive_mod(vi * scalar, 256)
+    end)
     |> :binary.list_to_bin
   end
 
+  # 255 acts as -1 in GF(256)
+  #
   def subtract(u, v) when is_binary(v),
-    do: add(u, multiply(v, -1))
+    do: add(u, multiply(v, 255))
 
   def subtract(v, scalar) when is_integer scalar do
     v
     |> :binary.bin_to_list
-    |> Enum.map(fn vi -> Math.mod(vi - scalar, 256) end)
+    |> Enum.map(fn vi ->
+      Math.positive_mod(vi + 256 - scalar, 256)
+    end)
     |> :binary.list_to_bin
   end
 
-  def divide(u, v) when is_binary(v),
-    do: vector_op(u, v, fn {ui, vi} -> div(ui, vi) |> Math.mod(256) end)
+  def divide(u, v) when is_binary(v) do
+    vector_op u, v, fn {ui, vi} ->
+      ui
+      |> div(vi)
+      |> Math.positive_mod(256)
+    end
+  end
 
   def divide(v, scalar) when is_integer scalar do
     v
     |> :binary.bin_to_list
-    |> Enum.map(fn vi -> div(vi, scalar) |> Math.mod(256) end)
+    |> Enum.map(fn vi ->
+      vi
+      |> div(scalar)
+      |> Math.positive_mod(256)
+    end)
     |> :binary.list_to_bin
   end
 
@@ -190,12 +213,14 @@ defimpl Vector, for: BitString do
     |> Enum.sum
   end
 
-  def outer(bitstring1, bitstring2) when is_binary bitstring2 do
+  def outer(bitstring1, bitstring2)
+      when is_binary bitstring2
+  do
     [u, v] = bitstrings_to_lists [bitstring1, bitstring2]
 
     for ui <- u do
       for vj <- v do
-        Math.mod(ui * vj, 256)
+        Math.positive_mod(ui * vj, 256)
       end
     end |> Enum.map(&:binary.list_to_bin(&1))
   end
@@ -206,7 +231,11 @@ defimpl Vector, for: BitString do
   def bit_and(v, scalar) when is_integer scalar do
     v
     |> :binary.bin_to_list
-    |> Enum.map(fn vi -> scalar |> Math.mod(256) |> band(vi) end)
+    |> Enum.map(fn vi ->
+      scalar
+      |> Math.positive_mod(256)
+      |> band(vi)
+    end)
     |> :binary.list_to_bin
   end
 
@@ -216,7 +245,11 @@ defimpl Vector, for: BitString do
   def bit_or(v, scalar) when is_integer scalar do
     v
     |> :binary.bin_to_list
-    |> Enum.map(fn vi -> scalar |> Math.mod(256) |> bor(vi) end)
+    |> Enum.map(fn vi ->
+      scalar
+      |> Math.positive_mod(256)
+      |> bor(vi)
+    end)
     |> :binary.list_to_bin
   end
 
@@ -226,7 +259,11 @@ defimpl Vector, for: BitString do
   def bit_xor(v, scalar) when is_integer scalar do
     v
     |> :binary.bin_to_list
-    |> Enum.map(fn vi -> scalar |> Math.mod(256) |> bxor(vi) end)
+    |> Enum.map(fn vi ->
+      scalar
+      |> Math.positive_mod(256)
+      |> bxor(vi)
+    end)
     |> :binary.list_to_bin
   end
 
@@ -235,7 +272,9 @@ defimpl Vector, for: BitString do
   def mod(v, modulus) do
     v
     |> :binary.bin_to_list
-    |> Enum.map(fn vi -> Math.mod(vi, modulus) end)
+    |> Enum.map(fn vi ->
+      Math.positive_mod(vi, modulus)
+    end)
     |> :binary.list_to_bin
   end
 
@@ -246,7 +285,7 @@ defimpl Vector, for: BitString do
     do: v
 
   def embed(v, dimension) when byte_size(v) < dimension,
-    do: String.rjust(v, dimension, 0)
+    do: String.pad_leading(v, dimension, <<0>>)
 
   def embed(v, dimension) when byte_size(v) > dimension do
     raise ArgumentError, message: "Cannot embed vector in space of lower dimension"
