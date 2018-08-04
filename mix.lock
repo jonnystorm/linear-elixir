@@ -1,1 +1,3 @@
-%{"jds_math_ex": {:git, "https://github.com/jonnystorm/jds-math-elixir", "144e35409a234b05be29ed4eb2000df9f2a9b804", []}}
+%{
+  "jds_math_ex": {:git, "https://gitlab.com/jonnystorm/jds-math-elixir", "048b5d4570c05649b121cba6a35b1e446bf9a811", []},
+}
