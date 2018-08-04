@@ -5,7 +5,7 @@ defmodule Linear.Mixfile do
     [ app: :linear_ex,
       version: "0.0.4",
       name: "LinearEx",
-      source_url: "https://github.com/jonnystorm/linear-elixir",
+      source_url: "https://gitlab.com/jonnystorm/linear-elixir",
       elixir: "~> 1.3",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
