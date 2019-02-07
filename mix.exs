@@ -36,7 +36,9 @@ defmodule Linear.Mixfile do
   end
 
   defp deps do
-    [ {:jds_math_ex, git: "https://gitlab.com/jonnystorm/jds-math-elixir"},
+    [ { :jds_math_ex,
+        git: "https://gitlab.com/jonnystorm/jds-math-elixir.git"
+      },
     ]
   end
 end
